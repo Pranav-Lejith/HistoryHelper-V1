@@ -9,11 +9,11 @@ from langchain.prompts import PromptTemplate
 
 # Pre-loaded PDFs (these should be paths to your PDF files)
 pdf_files = {
-    "Chapter 1": "./chapters/chapter1.pdf",
-    "Chapter 2": "./chapters/chapter2.pdf",
-    "Chapter 3": "./chapters/chapter3.pdf",
-    "Chapter 4": "./chapters/chapter4.pdf",
-    "Chapter 5": "./chapters/chapter5.pdf"
+    "Chapter 1 - The French Revolution": "./chapters/chapter1.pdf",
+    "Chapter 2 - Russian Revolution": "./chapters/chapter2.pdf",
+    "Chapter 3 - Nazism and rise of Hitler": "./chapters/chapter3.pdf",
+    "Chapter 4 - Forest Society and Colonialism": "./chapters/chapter4.pdf",
+    "Chapter 5 - Pastoralists in the Modern World": "./chapters/chapter5.pdf"
 }
 
 # Get the API key from Streamlit secrets
