@@ -1,7 +1,6 @@
 import streamlit as st
 from PyPDF2 import PdfReader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-import os
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain.vectorstores import FAISS
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -16,6 +15,11 @@ pdf_files = {
     "Chapter 4": "./chapters/chapter4.pdf",
     "Chapter 5": "./chapters/chapter5.pdf"
 }
+
+# Get the API key from Streamlit secrets
+api_key = st.secrets["google"]["api_key"]
+if not api_key:
+    raise ValueError("API key not found. Set the API key in Streamlit secrets.")
 
 # To maintain chat history
 if 'messages' not in st.session_state:
@@ -33,12 +37,12 @@ def get_text_chunks(text):
     chunks = text_splitter.split_text(text)
     return chunks
 
-def get_vector_store(text_chunks, api_key):
+def get_vector_store(text_chunks):
     embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=api_key)
     vector_store = FAISS.from_texts(text_chunks, embedding=embeddings)
     vector_store.save_local("faiss_index")
 
-def get_conversational_chain(api_key):
+def get_conversational_chain():
     prompt_template = """
     You are a historian with expertise in answering questions related to history. Answer the question as detailed as possible 
     from the provided context. Make sure to provide all the details. If the answer is not in the provided context, just say, 
@@ -56,13 +60,13 @@ def get_conversational_chain(api_key):
 
     return chain
 
-def user_input(user_question, api_key):
+def user_input(user_question):
     embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=api_key)
     
     new_db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
     docs = new_db.similarity_search(user_question)
 
-    chain = get_conversational_chain(api_key)
+    chain = get_conversational_chain()
     
     response = chain(
         {"input_documents": docs, "question": user_question},
@@ -99,19 +103,15 @@ def main():
 
     with st.sidebar:
         st.title("Menu:")
-        api_key = st.text_input("Enter your Google API Key", type="password")
         chapter_choice = st.selectbox("Choose a Chapter", options=list(pdf_files.keys()))
 
         if st.button("Process Chapter", key="process_chapter"):
-            if api_key:
-                with st.spinner("Processing..."):
-                    pdf_path = pdf_files[chapter_choice]
-                    raw_text = get_pdf_text(pdf_path)
-                    text_chunks = get_text_chunks(raw_text)
-                    get_vector_store(text_chunks, api_key)
-                    st.success("Done")
-            else:
-                st.error("Please enter your Google API Key")
+            with st.spinner("Processing..."):
+                pdf_path = pdf_files[chapter_choice]
+                raw_text = get_pdf_text(pdf_path)
+                text_chunks = get_text_chunks(raw_text)
+                get_vector_store(text_chunks)
+                st.success("Done")
 
         st.info("This chatbot uses Google Generative AI model for conversational responses.")
         st.info("Created By Pranav Lejith(Amphibiar)")
@@ -119,20 +119,18 @@ def main():
     user_question = st.text_input("Ask a Question from the PDF Files")
 
     if st.button("Submit Question", key="submit_question"):
-        if user_question and api_key:
+        if user_question:
             # Add user question to chat history
             st.session_state.messages.append({"role": "user", "content": user_question})
 
             # Get response from the model
-            response = user_input(user_question, api_key)
+            response = user_input(user_question)
             
             # Add model response to chat history
             st.session_state.messages.append({"role": "assistant", "content": response})
             
             # Display chat history
             display_chat()
-        elif not api_key:
-            st.error("Please enter your Google API Key")
 
 if __name__ == "__main__":
     main()
